@@ -26,7 +26,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form"
-import { useForm } from 'react-hook-form'
 
 interface KanbanListProps {
   list: List;

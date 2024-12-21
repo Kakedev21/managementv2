@@ -47,7 +47,7 @@ const memberSchema = z.object({
 type MemberFormData = z.infer<typeof memberSchema>;
 
 const Header = () => {
-  const { isAuthenticated, user, logout } = useUserStore()
+  const { isAuthenticated, logout } = useUserStore()
   const { currentBoard, users, addBoardMember, removeBoardMember, fetchUsers } = useKanbanStore()
   const navigate = useNavigate()
   const { boardId } = useParams()
@@ -64,13 +64,12 @@ const Header = () => {
   const memberForm = useForm<MemberFormData>({
     resolver: zodResolver(memberSchema),
   });
-
   const availableUsers = users.filter((u) =>
-    !currentBoard?.members?.some((member) => member.id === u.id || member.user_id === u.id)
+    !currentBoard?.members?.some((member) => Number(member.id) === u.id)
   );
 
   console.log('All users:', users); // Debug log
-  console.log('Board members:', currentBoard); // Debug log
+  console.log('Board members:', currentBoard?.members); // Debug log
   console.log('Available users:', availableUsers); // Debug log
 
   return (
@@ -99,7 +98,7 @@ const Header = () => {
                       <div key={member.id} className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <Avatar>
-                            <AvatarImage src={member.avatar} />
+                            <AvatarImage src={"/placeholder-avatar.jpg"} />
                             <AvatarFallback>{member.name[0]}</AvatarFallback>
                           </Avatar>
                           <div>
@@ -107,11 +106,11 @@ const Header = () => {
                             <p className="text-sm text-gray-400">{member.email}</p>
                           </div>
                         </div>
-                        {currentBoard.user_id !== member.id && (
+                        {currentBoard.user_id !== Number(member.id) && (
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => removeBoardMember(board.id, member.id)}
+                            onClick={() => removeBoardMember(parseInt(boardId), Number(member.id))}
                             className="text-red-400 hover:text-red-500"
                           >
                             <X className="h-4 w-4" />

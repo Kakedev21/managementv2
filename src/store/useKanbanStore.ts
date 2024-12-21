@@ -76,7 +76,7 @@ interface Label {
 
 interface ChecklistItem {
   id: number;
-  content: string;
+  title: string;
   is_completed: boolean;
   checklist_id: number;
 }
@@ -102,6 +102,7 @@ interface Comment {
   user_id: number;
   created_at: string;
   updated_at: string;
+  user: any
 }
 
 // Update the Card interface to include the new relations
@@ -452,7 +453,7 @@ const useKanbanStore = create<KanbanStore>((set, get) => ({
       set({ error: "Failed to reorder lists", isLoading: false });
     }
   },
-  createCard: async (boardId, listId, data) => {
+  createCard: async ( listId, data) => {
     try {
       set({ isLoading: true, error: null });
       const response = await cardAPI.createCard(listId.toString(), data);
@@ -477,7 +478,7 @@ const useKanbanStore = create<KanbanStore>((set, get) => ({
     }
   },
 
-  updateCard: async (boardId, listId, cardId, data) => {
+  updateCard: async ( listId, cardId, data) => {
     try {
       set({ isLoading: true, error: null });
       const response = await cardAPI.updateCard(
@@ -503,7 +504,7 @@ const useKanbanStore = create<KanbanStore>((set, get) => ({
     }
   },
 
-  deleteCard: async (boardId, listId, cardId) => {
+  deleteCard: async (listId, cardId) => {
     try {
       set({ isLoading: true, error: null });
       await cardAPI.deleteCard(listId.toString(), cardId.toString());
@@ -523,7 +524,7 @@ const useKanbanStore = create<KanbanStore>((set, get) => ({
     }
   },
 
-  reorderCards: async (boardId, listId, cards) => {
+  reorderCards: async ( listId, cards) => {
     try {
       set({ isLoading: true, error: null });
       const response = await cardAPI.reorderCards(listId.toString(), { cards });
@@ -558,10 +559,10 @@ const useKanbanStore = create<KanbanStore>((set, get) => ({
     }
   },
 
-  moveCard: async (boardId, cardId, sourceListId, targetListId, position) => {
+  moveCard: async (cardId, sourceListId, targetListId, position) => {
     try {
       set({ isLoading: true, error: null });
-      const response = await cardAPI.reorderCards(targetListId.toString(), {
+       await cardAPI.reorderCards(targetListId.toString(), {
         cards: [{ id: cardId, position, board_list_id: targetListId }],
       });
 

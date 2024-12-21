@@ -1,7 +1,6 @@
-import { Plus, MoreHorizontal, PlusCircle, Tag, ListChecks, Paperclip, MessageSquare, X, Check } from 'lucide-react'
+import { Plus, MoreHorizontal, PlusCircle, Tag, ListChecks, Paperclip, MessageSquare, X } from 'lucide-react'
 import { useParams } from 'react-router-dom'
 import useKanbanStore from '../store/useKanbanStore'
-import useUserStore from '@/store/userStore'
 import { useEffect, useState } from 'react'
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -30,8 +29,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
@@ -82,10 +79,9 @@ const Board = () => {
     updateList,
     deleteList,
     reorderLists,
-    createCard, moveCard, updateCard, reorderCards, deleteCard, attachLabel,
+    createCard, moveCard, reorderCards, attachLabel,
     detachLabel,
     createChecklist,
-    updateChecklist,
     deleteChecklist,
     createChecklistItem,
     updateChecklistItem,
@@ -95,16 +91,14 @@ const Board = () => {
   } = useKanbanStore()
 
 
-  const { user } = useUserStore()
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [editingListId, setEditingListId] = useState<number | null>(null)
   const [isCreateCardDialogOpen, setIsCreateCardDialogOpen] = useState<number | null>(null)
-  const [editingCardId, setEditingCardId] = useState<{ listId: number, cardId: number } | null>(null)
   const [isDetailsOpen, setIsDetailsOpen] = useState<number | null>(null);
   const [isAddingLabel, setIsAddingLabel] = useState<number | null>(null);
   const [isAddingChecklist, setIsAddingChecklist] = useState<number | null>(null);
   const [isAddingChecklistItem, setIsAddingChecklistItem] = useState<{ cardId: number, checklistId: number } | null>(null);
-  const [isAddingComment, setIsAddingComment] = useState<number | null>(null);
+
 
   const form = useForm<ListFormData>({
     resolver: zodResolver(listSchema),
@@ -165,7 +159,6 @@ const Board = () => {
 
   const handleAddComment = async (cardId: number, data: CommentFormData) => {
     await createComment({ ...data, card_id: cardId });
-    setIsAddingComment(null);
     commentForm.reset();
   };
 
@@ -174,20 +167,6 @@ const Board = () => {
     await createCard(parseInt(boardId), listId, data)
     setIsCreateCardDialogOpen(null)
     cardForm.reset()
-  }
-
-  const handleUpdateCard = async (listId: number, cardId: number, data: CardFormData) => {
-    if (!boardId) return
-    await updateCard(parseInt(boardId), listId, cardId, data)
-    setEditingCardId(null)
-    cardForm.reset()
-  }
-
-  const handleDeleteCard = async (listId: number, cardId: number) => {
-    if (!boardId) return
-    if (window.confirm('Are you sure you want to delete this card?')) {
-      await deleteCard(parseInt(boardId), listId, cardId)
-    }
   }
 
   const handleCreateList = async (data: ListFormData) => {

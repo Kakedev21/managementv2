@@ -11,7 +11,7 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate();
-  const { setUser, user, isAuthenticated, setIsAuthenticated } = useUserStore()
+  const { setUser, setIsAuthenticated } = useUserStore()
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();

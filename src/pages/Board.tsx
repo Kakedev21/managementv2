@@ -1,6 +1,7 @@
-import { Plus, MoreHorizontal, PlusCircle, Tag, ListChecks, Paperclip, MessageSquare, X } from 'lucide-react'
+import { Plus, MoreHorizontal, PlusCircle, Tag, ListChecks, Paperclip, MessageSquare, X, Check } from 'lucide-react'
 import { useParams } from 'react-router-dom'
 import useKanbanStore from '../store/useKanbanStore'
+import useUserStore from '@/store/userStore'
 import { useEffect, useState } from 'react'
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -29,6 +30,8 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
@@ -79,9 +82,10 @@ const Board = () => {
     updateList,
     deleteList,
     reorderLists,
-    createCard, moveCard, reorderCards, attachLabel,
+    createCard, moveCard, updateCard, reorderCards, deleteCard, attachLabel,
     detachLabel,
     createChecklist,
+    updateChecklist,
     deleteChecklist,
     createChecklistItem,
     updateChecklistItem,
@@ -91,14 +95,16 @@ const Board = () => {
   } = useKanbanStore()
 
 
+  const { user } = useUserStore()
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [editingListId, setEditingListId] = useState<number | null>(null)
   const [isCreateCardDialogOpen, setIsCreateCardDialogOpen] = useState<number | null>(null)
+  const [editingCardId, setEditingCardId] = useState<{ listId: number, cardId: number } | null>(null)
   const [isDetailsOpen, setIsDetailsOpen] = useState<number | null>(null);
   const [isAddingLabel, setIsAddingLabel] = useState<number | null>(null);
   const [isAddingChecklist, setIsAddingChecklist] = useState<number | null>(null);
   const [isAddingChecklistItem, setIsAddingChecklistItem] = useState<{ cardId: number, checklistId: number } | null>(null);
-
+  const [isAddingComment, setIsAddingComment] = useState<number | null>(null);
 
   const form = useForm<ListFormData>({
     resolver: zodResolver(listSchema),
@@ -140,6 +146,7 @@ const Board = () => {
 
   // Add these new handlers
   const handleAddLabel = async (cardId: number, data: LabelFormData) => {
+    console.log("ASDASd", cardId)
     await attachLabel(cardId, data);
     setIsAddingLabel(null);
     labelForm.reset();
@@ -159,6 +166,7 @@ const Board = () => {
 
   const handleAddComment = async (cardId: number, data: CommentFormData) => {
     await createComment({ ...data, card_id: cardId });
+    setIsAddingComment(null);
     commentForm.reset();
   };
 
@@ -167,6 +175,20 @@ const Board = () => {
     await createCard(parseInt(boardId), listId, data)
     setIsCreateCardDialogOpen(null)
     cardForm.reset()
+  }
+
+  const handleUpdateCard = async (listId: number, cardId: number, data: CardFormData) => {
+    if (!boardId) return
+    await updateCard(parseInt(boardId), listId, cardId, data)
+    setEditingCardId(null)
+    cardForm.reset()
+  }
+
+  const handleDeleteCard = async (listId: number, cardId: number) => {
+    if (!boardId) return
+    if (window.confirm('Are you sure you want to delete this card?')) {
+      await deleteCard(parseInt(boardId), listId, cardId)
+    }
   }
 
   const handleCreateList = async (data: ListFormData) => {
@@ -257,6 +279,11 @@ const Board = () => {
   if (!currentBoard) {
     return <div>Loading...</div>
   }
+
+  if (!currentBoard) {
+    return <div>Loading...</div>
+  }
+
 
   return (
     <div className="min-h-screen bg-[#1e1b4b] p-6">
@@ -400,18 +427,18 @@ const Board = () => {
 
                                                   {/* Quick info */}
                                                   <div className="flex gap-2 mt-2 text-gray-500">
-                                                    {card.checklists && card.checklists!.length > 0 && (
+                                                    {card.checklists && card.checklists.length > 0 && (
                                                       <div className="flex items-center gap-1">
                                                         <ListChecks className="h-4 w-4" />
                                                         <span>
-                                                          {card.checklists!.reduce(
+                                                          {card.checklists.reduce(
                                                             (acc, list) =>
                                                               acc +
                                                               (list.items?.filter((item) => item.is_completed)?.length || 0),
                                                             0
                                                           )}
                                                           /
-                                                          {card.checklists!.reduce(
+                                                          {card.checklists.reduce(
                                                             (acc, list) => acc + (list.items?.length || 0),
                                                             0
                                                           )}
@@ -421,7 +448,7 @@ const Board = () => {
                                                     {card.attachments && card.attachments.length > 0 && (
                                                       <div className="flex items-center gap-1">
                                                         <Paperclip className="h-4 w-4" />
-                                                        <span>{card.attachments.length}</span>
+                                                        <span>{card.attachments?.length}</span>
                                                       </div>
                                                     )}
                                                     {card.comments && card.comments.length > 0 && (

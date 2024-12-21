@@ -76,9 +76,11 @@ interface Label {
 
 interface ChecklistItem {
   id: number;
-  title: string;
+  content: string;
   is_completed: boolean;
   checklist_id: number;
+  user:any
+  title:any
 }
 
 interface Checklist {
@@ -102,7 +104,7 @@ interface Comment {
   user_id: number;
   created_at: string;
   updated_at: string;
-  user: any
+  user:any
 }
 
 // Update the Card interface to include the new relations
@@ -260,12 +262,25 @@ const useKanbanStore = create<KanbanStore>((set, get) => ({
     try {
       set({ isLoading: true, error: null });
       const response = await boardAPI.getBoard(boardId.toString());
+      
+      // Ensure lists and their cards have all necessary data
+      const listsWithCards = response.data.lists.map((list: BoardList) => ({
+        ...list,
+        cards: list.cards.map((card: Card) => ({
+          ...card,
+          labels: card.labels || [],
+          checklists: card.checklists || [],
+          attachments: card.attachments || [],
+          comments: card.comments || []
+        }))
+      }));
+
       set({
-        currentBoard: response.data,
-        lists: response.data.lists.map((list: BoardList) => ({
-          ...list,
-          cards: list.cards || [],
-        })),
+        currentBoard: {
+          ...response.data,
+          lists: listsWithCards
+        },
+        lists: listsWithCards,
         isLoading: false,
       });
     } catch (error) {
@@ -370,11 +385,21 @@ const useKanbanStore = create<KanbanStore>((set, get) => ({
     try {
       set({ isLoading: true, error: null });
       const response = await listAPI.getLists(boardId.toString());
+      
+      // Ensure cards have all necessary data
+      const listsWithCards = response.data.map((list: BoardList) => ({
+        ...list,
+        cards: (list.cards || []).map((card: Card) => ({
+          ...card,
+          labels: card.labels || [],
+          checklists: card.checklists || [],
+          attachments: card.attachments || [],
+          comments: card.comments || []
+        }))
+      }));
+
       set({
-        lists: response.data.map((list: BoardList) => ({
-          ...list,
-          cards: list.cards || [],
-        })),
+        lists: listsWithCards,
         isLoading: false,
       });
     } catch (error) {
@@ -435,40 +460,28 @@ const useKanbanStore = create<KanbanStore>((set, get) => ({
       });
 
       // Preserve the existing cards by merging with the response data
-      set((state) => {
-        const existingListsMap = state.lists.reduce((acc, list) => {
-          acc[list.id] = list;
-          return acc;
-        }, {} as Record<number, BoardList>);
-
-        return {
-          lists: response.data.map((updatedList: BoardList) => ({
+      set((state) => ({
+        lists: response.data.map((updatedList: BoardList) => {
+          const existingList = state.lists.find((l) => l.id === updatedList.id);
+          return {
             ...updatedList,
-            cards: existingListsMap[updatedList.id]?.cards || [],
-          })),
-          isLoading: false,
-        };
-      });
+            cards: existingList?.cards || [], // Keep the existing cards
+          };
+        }),
+        isLoading: false,
+      }));
     } catch (error) {
       set({ error: "Failed to reorder lists", isLoading: false });
     }
   },
-  createCard: async ( listId, data) => {
+  createCard: async (boardId, listId, data) => {
     try {
       set({ isLoading: true, error: null });
       const response = await cardAPI.createCard(listId.toString(), data);
-
-      // Update the lists state with the new card
       set((state) => ({
         lists: state.lists.map((list) =>
           list.id === listId
-            ? {
-                ...list,
-                cards: [
-                  ...(list.cards || []),
-                  { ...response.data, list_id: listId },
-                ],
-              }
+            ? { ...list, cards: [...list.cards, response.data] }
             : list
         ),
         isLoading: false,
@@ -478,7 +491,7 @@ const useKanbanStore = create<KanbanStore>((set, get) => ({
     }
   },
 
-  updateCard: async ( listId, cardId, data) => {
+  updateCard: async (boardId, listId, cardId, data) => {
     try {
       set({ isLoading: true, error: null });
       const response = await cardAPI.updateCard(
@@ -504,7 +517,7 @@ const useKanbanStore = create<KanbanStore>((set, get) => ({
     }
   },
 
-  deleteCard: async (listId, cardId) => {
+  deleteCard: async (boardId, listId, cardId) => {
     try {
       set({ isLoading: true, error: null });
       await cardAPI.deleteCard(listId.toString(), cardId.toString());
@@ -524,55 +537,32 @@ const useKanbanStore = create<KanbanStore>((set, get) => ({
     }
   },
 
-  reorderCards: async ( listId, cards) => {
+  reorderCards: async (boardId, listId, cards) => {
     try {
       set({ isLoading: true, error: null });
       const response = await cardAPI.reorderCards(listId.toString(), { cards });
-
-      // Preserve existing card data while updating positions
-      set((state) => {
-        const currentList = state.lists.find((list) => list.id === listId);
-        if (!currentList) return state;
-
-        const cardMap = currentList.cards.reduce((acc, card) => {
-          acc[card.id] = card;
-          return acc;
-        }, {} as Record<number, any>);
-
-        return {
-          lists: state.lists.map((list) =>
-            list.id === listId
-              ? {
-                  ...list,
-                  cards: response.data.map((updatedCard: any) => ({
-                    ...cardMap[updatedCard.id],
-                    ...updatedCard,
-                  })),
-                }
-              : list
-          ),
-          isLoading: false,
-        };
-      });
+      set((state) => ({
+        lists: state.lists.map((list) =>
+          list.id === listId ? { ...list, cards: response.data } : list
+        ),
+        isLoading: false,
+      }));
     } catch (error) {
       set({ error: "Failed to reorder cards", isLoading: false });
     }
   },
 
-  moveCard: async (cardId, sourceListId, targetListId, position) => {
+  moveCard: async (boardId, cardId, sourceListId, targetListId, position) => {
     try {
       set({ isLoading: true, error: null });
-       await cardAPI.reorderCards(targetListId.toString(), {
+      const response = await cardAPI.reorderCards(targetListId.toString(), {
         cards: [{ id: cardId, position, board_list_id: targetListId }],
       });
 
-      // Keep existing card data when moving
       set((state) => {
-        const movedCard = state.lists
-          .find((list) => list.id === sourceListId)
-          ?.cards.find((card) => card.id === cardId);
-
-        if (!movedCard) return state;
+        // Find the card being moved to preserve its data
+        const sourceList = state.lists.find((list) => list.id === sourceListId);
+        const movedCard = sourceList?.cards.find((card) => card.id === cardId);
 
         return {
           lists: state.lists.map((list) => {
@@ -583,11 +573,12 @@ const useKanbanStore = create<KanbanStore>((set, get) => ({
               };
             }
             if (list.id === targetListId) {
-              const updatedCards = [...list.cards];
-              // Insert the moved card at the correct position
-              updatedCards.splice(position, 0, {
-                ...movedCard,
-                list_id: targetListId,
+              // Ensure we preserve the card's data when moving it
+              const updatedCards = response.data.map((card: Card) => {
+                if (card.id === cardId && movedCard) {
+                  return { ...movedCard, ...card };
+                }
+                return card;
               });
               return { ...list, cards: updatedCards };
             }
@@ -605,16 +596,12 @@ const useKanbanStore = create<KanbanStore>((set, get) => ({
     try {
       set({ isLoading: true, error: null });
       const response = await labelAPI.attachLabel(cardId.toString(), data);
-
       set((state) => ({
         lists: state.lists.map((list) => ({
           ...list,
           cards: list.cards.map((card) =>
             card.id === cardId
-              ? {
-                  ...card,
-                  labels: [...(card.labels || []), response.data],
-                }
+              ? { ...card, labels: [...(card.labels || []), response.data] }
               : card
           ),
         })),

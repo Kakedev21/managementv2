@@ -5,6 +5,7 @@ export const userAPI = {
   login: (data: UserLogin) => api.post("/users/login", data),
   register: (data: UserRegister) => api.post("/users", data),
   logout: () => api.post("/logout"),
+  getUsers: () => api.get("/users"),
 };
 
 export const boardAPI = {

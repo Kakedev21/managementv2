@@ -7,8 +7,15 @@ import {
   checklistAPI,
   commentAPI,
   labelAPI,
+  userAPI,
 } from "../api/routes";
 import { User } from "@/types/userType";
+
+interface UserKanban {
+  id: number;
+  name: string;
+  email: string;
+}
 
 interface Board {
   id: number;
@@ -112,10 +119,13 @@ interface Card {
 interface KanbanStore {
   // State
   boards: Board[];
+  users: UserKanban[];
   currentBoard: Board | null;
   lists: BoardList[];
   isLoading: boolean;
   error: string | null;
+  setUsers: (users: UserKanban[]) => void;
+  fetchUsers: () => Promise<void>;
   createCard: (
     boardId: number,
     listId: number,
@@ -194,7 +204,7 @@ interface KanbanStore {
   deleteChecklist: (checklistId: number) => Promise<void>;
   createChecklistItem: (
     checklistId: number,
-    data: { content: string }
+    data: { title: string }
   ) => Promise<void>;
   updateChecklistItem: (
     checklistId: number,
@@ -223,6 +233,13 @@ const useKanbanStore = create<KanbanStore>((set, get) => ({
   lists: [],
   isLoading: false,
   error: null,
+  users: [],
+
+  setUsers: (users: UserKanban[]) => set({ users }),
+  fetchUsers: async () => {
+    const response = await userAPI.getUsers();
+    set({ users: response.data });
+  },
 
   // Board actions
   fetchBoards: async () => {
@@ -429,10 +446,18 @@ const useKanbanStore = create<KanbanStore>((set, get) => ({
     try {
       set({ isLoading: true, error: null });
       const response = await cardAPI.createCard(listId.toString(), data);
+
+      // Update the lists state with the new card
       set((state) => ({
         lists: state.lists.map((list) =>
           list.id === listId
-            ? { ...list, cards: [...list.cards, response.data] }
+            ? {
+                ...list,
+                cards: [
+                  ...(list.cards || []),
+                  { ...response.data, list_id: listId },
+                ],
+              }
             : list
         ),
         isLoading: false,
@@ -533,12 +558,16 @@ const useKanbanStore = create<KanbanStore>((set, get) => ({
     try {
       set({ isLoading: true, error: null });
       const response = await labelAPI.attachLabel(cardId.toString(), data);
+      
       set((state) => ({
         lists: state.lists.map((list) => ({
           ...list,
           cards: list.cards.map((card) =>
             card.id === cardId
-              ? { ...card, labels: [...(card.labels || []), response.data] }
+              ? {
+                  ...card,
+                  labels: [...(card.labels || []), response.data]
+                }
               : card
           ),
         })),

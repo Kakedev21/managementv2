@@ -202,10 +202,7 @@ export default function Home() {
                 </div>
                 <Button
                   variant="outline"
-                  onClick={() => {
-                    // Navigate to board
-                    // You'll need to implement this based on your routing setup
-                  }}
+                  onClick={() => navigate(`/board/${board.id}`)}
                 >
                   Open
                 </Button>

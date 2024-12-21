@@ -57,7 +57,7 @@ const checklistSchema = z.object({
 });
 
 const checklistItemSchema = z.object({
-  content: z.string().min(1, "Item content is required"),
+  title: z.string().min(1, "Item content is required"),
 });
 
 const commentSchema = z.object({
@@ -106,7 +106,6 @@ const Board = () => {
   const [isAddingChecklistItem, setIsAddingChecklistItem] = useState<{ cardId: number, checklistId: number } | null>(null);
   const [isAddingComment, setIsAddingComment] = useState<number | null>(null);
 
-  console.log("lasd", lists)
 
   const form = useForm<ListFormData>({
     resolver: zodResolver(listSchema),
@@ -285,6 +284,7 @@ const Board = () => {
   if (!currentBoard) {
     return <div>Loading...</div>
   }
+
 
   return (
     <div className="min-h-screen bg-[#1e1b4b] p-6">
@@ -559,8 +559,8 @@ const Board = () => {
                                                                   })
                                                                 }
                                                               />
-                                                              <span className={item.is_completed ? "line-through text-gray-500" : ""}>
-                                                                {item.content}
+                                                              <span className={item.is_completed ? "line-through text-red-500" : ""}>
+                                                                {item.title}
                                                               </span>
                                                               <Button
                                                                 variant="ghost"
@@ -581,7 +581,7 @@ const Board = () => {
                                                               >
                                                                 <FormField
                                                                   control={checklistItemForm.control}
-                                                                  name="content"
+                                                                  name="title"
                                                                   render={({ field }) => (
                                                                     <FormItem className="flex-1">
                                                                       <FormControl>
@@ -648,6 +648,7 @@ const Board = () => {
                                                             <p className="text-sm text-gray-500">
                                                               {new Date(comment.created_at).toLocaleString()}
                                                             </p>
+                                                            <p className="text-sm font-semibold">{comment.user.name}</p>
                                                             <p className="mt-1">{comment.content}</p>
                                                           </div>
                                                           <Button

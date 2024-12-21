@@ -106,7 +106,6 @@ const Board = () => {
   const [isAddingChecklistItem, setIsAddingChecklistItem] = useState<{ cardId: number, checklistId: number } | null>(null);
   const [isAddingComment, setIsAddingComment] = useState<number | null>(null);
 
-
   const form = useForm<ListFormData>({
     resolver: zodResolver(listSchema),
     defaultValues: {
@@ -147,7 +146,6 @@ const Board = () => {
 
   // Add these new handlers
   const handleAddLabel = async (cardId: number, data: LabelFormData) => {
-    console.log("ASDASd", cardId)
     await attachLabel(cardId, data);
     setIsAddingLabel(null);
     labelForm.reset();
@@ -280,11 +278,6 @@ const Board = () => {
   if (!currentBoard) {
     return <div>Loading...</div>
   }
-
-  if (!currentBoard) {
-    return <div>Loading...</div>
-  }
-
 
   return (
     <div className="min-h-screen bg-[#1e1b4b] p-6">
@@ -428,31 +421,31 @@ const Board = () => {
 
                                                   {/* Quick info */}
                                                   <div className="flex gap-2 mt-2 text-gray-500">
-                                                    {card.checklists?.length > 0 && (
+                                                    {card.checklists && card.checklists!.length > 0 && (
                                                       <div className="flex items-center gap-1">
                                                         <ListChecks className="h-4 w-4" />
                                                         <span>
-                                                          {card.checklists.reduce(
+                                                          {card.checklists!.reduce(
                                                             (acc, list) =>
                                                               acc +
                                                               (list.items?.filter((item) => item.is_completed)?.length || 0),
                                                             0
                                                           )}
                                                           /
-                                                          {card.checklists.reduce(
+                                                          {card.checklists!.reduce(
                                                             (acc, list) => acc + (list.items?.length || 0),
                                                             0
                                                           )}
                                                         </span>
                                                       </div>
                                                     )}
-                                                    {card.attachments?.length > 0 && (
+                                                    {card.attachments && card.attachments.length > 0 && (
                                                       <div className="flex items-center gap-1">
                                                         <Paperclip className="h-4 w-4" />
                                                         <span>{card.attachments.length}</span>
                                                       </div>
                                                     )}
-                                                    {card.comments?.length > 0 && (
+                                                    {card.comments && card.comments.length > 0 && (
                                                       <div className="flex items-center gap-1">
                                                         <MessageSquare className="h-4 w-4" />
                                                         <span>{card.comments.length}</span>
